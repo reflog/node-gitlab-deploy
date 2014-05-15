@@ -38,6 +38,7 @@ gitlab-deploy --help
     -h, --host [ip]      Host [ip] to bind on
     -p, --port [number]  Port [number] to listen on
     --wipe-app [app]     Wipe one application
+    --wipe-db            Wipe the database
     --wipe-all           Wipe everything
 ```
 

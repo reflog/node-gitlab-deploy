@@ -18,6 +18,7 @@ program
   .option('-p, --port [number]', 'Port [number] to listen on', 3240)
   .option('--clean-install', 'Delete old "node_modules" before "npm install"ing')
   .option('--wipe-app [app]', 'Wipe one application')
+  .option('--wipe-db', 'Wipe the database')
   .option('--wipe-all', 'Wipe everything')
   .parse(process.argv);
 
@@ -55,6 +56,10 @@ if(program.wipeApp) {
   rimraf.sync(DB_DIR);
   rimraf.sync(REPOS_DIR);
   info("Wiped all deployment data");
+  process.exit(1);
+}else if(program.wipeDb){
+  rimraf.sync(DB_DIR);
+  info("Wiped db data");
   process.exit(1);
 }
 
