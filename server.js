@@ -129,10 +129,10 @@ function reinstall(app, next) {
   }
 
   if(fs.existsSync(app.dir)) {
-    exec("git", ["fetch", "--all"], { cwd: app.dir }).on("exit", function(code) {
-      if(code !== 0) return next("git fetch error");
-      exec("git", ["reset","--hard",app.branch], { cwd: app.dir }).on("exit", function(code) {
-        if(code !== 0) return next("git reset error");
+    exec("git", ["reset", "--hard"], { cwd: app.dir }).on("exit", function(code) {
+      if(code !== 0) return next("git reset error");
+      exec("git", ["pull"], { cwd: app.dir }).on("exit", function(code) {
+        if(code !== 0) return next("git fetch error");
         install();
       });
     });
