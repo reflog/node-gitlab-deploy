@@ -14,7 +14,8 @@ Automatic deployment server listening for Gitlab Webhooks
     1. Deploy Keys
       * Add public key of `<hostname>` (or "+Enable" if already added)
     1. Web Hooks
-      * Add `http://<hostname>:<port>?<foo-entry-file.js>` *(For example `http://10.1.0.247:3240?server.js`)*
+      * Add `http://<hostname>:<port>?<foo-entry-file.js>` *(For example `http://10.1.0.247:3240?repoName=customName&startCommand=node%20start&branch=someBranch`)*
+      * Parameters are optional and default to - regular repo display name, start command of 'npm start' and 'master' as branch name
       * Click "Test Hook"
 1. `gitlab-deploy` should receive the POST and begin deploying `foo`
 1. Confirm `foo-entry-file.js` is running
@@ -32,6 +33,7 @@ gitlab-deploy --help
 
     -h, --help           output usage information
     -V, --version        output the version number
+    -d, --dir [dir]      Repositories directory. Defaults to script installation dir
     -f, --file           Write to log.txt and err.txt instead of stdouterr
     -h, --host [ip]      Host [ip] to bind on
     -p, --port [number]  Port [number] to listen on
@@ -42,7 +44,6 @@ gitlab-deploy --help
 ### Todo
 
 * Make this work with GitHub web hooks
-* Non-node applications
 
 #### MIT License
 

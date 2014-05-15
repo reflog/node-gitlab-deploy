@@ -12,6 +12,7 @@ var util = require('util');
 program
   .version(pkg.version)
   .usage('[options]')
+  .option('-d, --dir [dir]', 'Repositories directory. Defaults to script installation dir', path.join(__dirname, 'repos'))
   .option('-f, --file', 'Write to deploy.txt instead of stdouterr')
   .option('-h, --host [ip]', 'Host [ip] to bind on', "0.0.0.0")
   .option('-p, --port [number]', 'Port [number] to listen on', 3240)
@@ -41,7 +42,7 @@ require('logbook').configure({
 var DB_DIR = path.join(__dirname, 'database');
 var db = require('level')(DB_DIR, { valueEncoding: 'json' });
 
-var REPOS_DIR = path.join(__dirname, 'repos');
+var REPOS_DIR = program.dir;
 mkdirp.sync(REPOS_DIR);
 
 if(program.wipeApp) {
@@ -61,17 +62,7 @@ if(program.wipeApp) {
 var procs = {};
 
 //start webhook server
-var url = require('url');
 require("http").createServer(function(req, res) {
-  var u = url.parse(req.url);
-  var entry = u.query;
-
-  if(!entry) {
-    res.writeHead(400);
-    res.end("no entry file");
-    return;
-  }
-
   var json = "";
   req.on("data", function(buff) {
     json += buff;
@@ -82,10 +73,14 @@ require("http").createServer(function(req, res) {
       if(!hook.repository)
         throw "missing 'repository'";
       var name = hook.repository.name;
+      var url = require('url');
+      var u = url.parse(req.url, true);
+
       var app = {
         name: name,
-        dir: path.join(REPOS_DIR, name),
-        entry: entry,
+        branch: u.query.branch || 'master',
+        dir: path.join(REPOS_DIR, u.query.repoName || name),
+        startCommand: u.query.startCommand || 'npm start',
         git: hook.repository.url
       };
       db.put(name, app);
@@ -136,13 +131,13 @@ function reinstall(app, next) {
   if(fs.existsSync(app.dir)) {
     exec("git", ["fetch", "--all"], { cwd: app.dir }).on("exit", function(code) {
       if(code !== 0) return next("git fetch error");
-      exec("git", ["reset","--hard","origin/master"], { cwd: app.dir }).on("exit", function(code) {
+      exec("git", ["reset","--hard",app.branch], { cwd: app.dir }).on("exit", function(code) {
         if(code !== 0) return next("git reset error");
         install();
       });
     });
   } else {
-    exec("git", ["clone", app.git, app.dir]).on("exit", function(code) {
+    exec("git", ["clone",  "-b", app.branch, "--single-branch", app.git, app.dir]).on("exit", function(code) {
       if(code !== 0) return next("git clone error");
       install();
     });
@@ -150,8 +145,8 @@ function reinstall(app, next) {
 }
 
 function start(app, next) {
-
-  var proc = app.proc = procs[app.name] = exec("node", [app.entry], { cwd: app.dir });
+  var cmdln = app.startCommand.split(" ");
+  var proc = app.proc = procs[app.name] = exec(cmdln[0], cmdln.slice(1), { cwd: app.dir });
 
   proc.on("error", function(err) {
     error("app error: %s: %s", app.name, err);
@@ -160,12 +155,6 @@ function start(app, next) {
   proc.once("exit", function(code) {
     console.log("> %s exited with %s", app.name, code || 0);
     app.proc = procs[app.name] = null;
-    // if(app.start) {
-      // TOOD try to stop infinite instant restarts
-      // app.crash = app.crash ? 1 : app.crash+1;
-    //   log(">> restarting '%s'...", app.name);
-    //   start(app, function(err) {});
-    // }
   });
 
   proc.stdout.on('data', function(buff) {
@@ -214,4 +203,3 @@ function error() {
   //TODO email or someting...
   console.error.apply(console, arguments);
 }
-
